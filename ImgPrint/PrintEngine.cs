@@ -21,11 +21,12 @@ namespace ImgPrint
        public string dirPath= "";
        public string searchPatern = "*.png";
        public string printerName = "";
-       public bool saveNeed = false;
-       public bool deleteNeed = false;
+       public bool saveNeed = true;
+       public bool deleteNeed = true;
        public int dpi = 300;
        public string mediaType = "A4";
        public bool convertNeed = true;
+       public bool isConvertAsync = false;
 
        public int timerInterval = 2000;
        public int timerMaxTickCount = 7;
@@ -53,9 +54,10 @@ namespace ImgPrint
             {
                 string fn = Path.GetFileName(f);
                 if (!printFiles.ContainsKey(fn))                 
-                        printFiles.Add(fn, new printFile(f));                             
+                        printFiles.Add(fn, new printFile(f));               
             }
-                       
+     
+            
             if (timerInterval > 0)
             {
                 
@@ -114,11 +116,15 @@ namespace ImgPrint
                 return;
             }
 
-          foreach (var f in files)
+            foreach (var f in files)
             {
                 f.status = printFileStatus.in_queue;
             }
-
+            if (isConvertAsync)
+            {
+                Thread t = new Thread(new ThreadStart(convertAsync));
+                t.Start();
+            }
          int n = 0;
 
             PrintDocument pd = new PrintDocument();
@@ -162,50 +168,63 @@ namespace ImgPrint
             {
 
                 printFile pf = files[n];
-                try
-                {
-
-                    Bitmap bmpFromFile = new Bitmap(pf.filePath);
+                //try
+                //{
+                                 
 
                     if (convertNeed)
                     {
+                        if (isConvertAsync && pf.bmp1b!=null)
+                        {                       
+                            args.Graphics.DrawImage(pf.bmp1b, new Point(0, 0));
+                            pf.bmp1b = null;
+                            pf.bmp1b.Dispose();
+                        }
+                        else
+                        {
+
+                        Bitmap bmpFromFile = new Bitmap(pf.filePath);
                         Bitmap bmp1b = bmpFromFile.Clone(new Rectangle(0, 0, bmpFromFile.Width, bmpFromFile.Height),
                         PixelFormat.Format1bppIndexed);
 
-                    bmp1b.SetResolution(dpi, dpi);
+                        bmp1b.SetResolution(dpi, dpi);
 
-                    if (saveNeed)
+                        if (saveNeed)
                         bmp1b.Save($"{dirPath}\\converted\\{Path.GetFileNameWithoutExtension(pf.filePath)}.bmp", ImageFormat.Bmp);
 
-                    args.Graphics.DrawImage(bmp1b, new Point(0, 0));
+                        args.Graphics.DrawImage(bmp1b, new Point(0, 0));
 
-                    bmp1b.Dispose();
+                        bmp1b.Dispose();
+                        bmpFromFile.Dispose();
+                        }
+                       
                     }
                     else
                     {
+                        Bitmap bmpFromFile = new Bitmap(pf.filePath);
                         args.Graphics.DrawImage(bmpFromFile, new Point(0, 0));
+                        bmpFromFile.Dispose();
                     }
 
-                    bmpFromFile.Dispose();
+                   
 
 
-                    if (n >= files.Length - 1)
+               if (n >= files.Length - 1)
                     args.HasMorePages = false;
                 else
                     args.HasMorePages = true;
 
                 pf.status = printFileStatus.printed;
 
-                }
-                catch(Exception ex)
-                {
-                    log(ex.Message);
-                    pf.status = printFileStatus.hasErrors;
-                }
-                finally
-                {
+                //}
+                //catch(Exception ex)
+                //{
+                //    log($"printing - {ex.Message}");
+                //    pf.status = printFileStatus.hasErrors;
+                //}
+                
                 n++;
-                }
+               
                
                 
             };
@@ -220,7 +239,7 @@ namespace ImgPrint
                 {
                     foreach(var f in files)
                      {
-                    //log(f.status.ToString());
+                    //log($"{f.filePath.ToString()} - {f.status}");
                     System.IO.File.Delete(f.filePath);
                     printFiles.Remove(Path.GetFileName(f.filePath));                          
 
@@ -255,7 +274,7 @@ namespace ImgPrint
             {
                 return;
             }
-            Console.WriteLine($"Changed: {e.FullPath}");
+            //Console.WriteLine($"Changed: {e.FullPath}");
 
             string fn = Path.GetFileName(e.FullPath);
             if (!printFiles.ContainsKey(fn))
@@ -290,35 +309,35 @@ namespace ImgPrint
                 .ToArray());
         }
 
-        void convertAsync(object list)
+        void convertAsync()
         {
             if(Directory.Exists($"{dirPath}\\converted") == false)
             {
                 try
                 {
- Directory.CreateDirectory($"{dirPath}\\converted");
+                Directory.CreateDirectory($"{dirPath}\\converted");
                 }
                catch(Exception ex)
                 {
-                    log(ex.Message);
+                    log($"convertAsync - {ex.Message}");
                 }
             }
 
-          foreach (var f in ((Dictionary<string, printFile>)list)
+          foreach (var f in printFiles
                             .Values
                             .Where(x => x.status == printFileStatus.added)
                             .ToArray())
             {
 
-                Bitmap bmpFromFile = new Bitmap(f.filePath);
+                    Bitmap bmpFromFile = new Bitmap(f.filePath);
                               
                     f.bmp1b = bmpFromFile.Clone(new Rectangle(0, 0, bmpFromFile.Width, bmpFromFile.Height),
                     PixelFormat.Format1bppIndexed);
 
                     f.bmp1b.SetResolution(dpi, dpi);
 
-                    f.status = printFileStatus.converted;
-
+                    //f.status = printFileStatus.converted;
+               
                     if (saveNeed)
                         f.bmp1b.Save($"{dirPath}\\converted\\{Path.GetFileNameWithoutExtension(f.filePath)}.bmp", ImageFormat.Bmp);
            }
