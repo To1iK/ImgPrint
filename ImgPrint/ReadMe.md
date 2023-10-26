@@ -12,4 +12,7 @@ The image printing program works as a console application.
 - Configure program options in a separate file
 - Specify options through the command line
 - Combine options from file and command line
+- 
+
+
 

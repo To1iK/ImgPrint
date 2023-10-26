@@ -43,17 +43,18 @@ namespace ImgPrint
                 setVarsFromOptions(args);
             }
 
-            Console.WriteLine(dirPath);
-            Console.WriteLine(printerName);
-            Console.WriteLine(saveNeed);
-            Console.WriteLine(deleteNeed);
-            Console.WriteLine(timerInterval);
-            Console.WriteLine(timerMaxTickCount);
-            Console.WriteLine(printToPDFpath);
+            //Console.WriteLine(dirPath);
+            //Console.WriteLine(printerName);
+            //Console.WriteLine(saveNeed);
+            //Console.WriteLine(deleteNeed);
+            //Console.WriteLine(timerInterval);
+            //Console.WriteLine(timerMaxTickCount);
+            //Console.WriteLine(printToPDFpath);
 
-            PrintingExample printEngine = new PrintingExample();
+            printEngine printEngine = new printEngine();
 
             printEngine.dirPath           = dirPath;
+            printEngine.searchPatern      = searchPatern;
             printEngine.printerName       = printerName;
             printEngine.mediaType         = mediaType;
             printEngine.saveNeed          = saveNeed;
@@ -77,6 +78,8 @@ namespace ImgPrint
 
             {"d|dir=", "directory with images for printing",
               v => dirPath = v },
+            {"s|search=", "patern for searching of files in dir",
+              v => searchPatern = v },
             {"p|printer=", "name of printer with windows driver",
               v => printerName = v },
             {"m|mtype=", "name of mediatype for printing",

@@ -14,10 +14,10 @@ using static System.Net.WebRequestMethods;
 
 namespace ImgPrint
 {
-    public class PrintingExample
+    public class printEngine
     {
-       private StreamReader streamToPrint;
-       static string filePath;
+       
+       //static string filePath;
        public string dirPath= "";
        public string searchPatern = "*.png";
        public string printerName = "";
@@ -32,7 +32,7 @@ namespace ImgPrint
 
        public string printToPDFpath = "";
 
-        Dictionary<string, printedFile> printFiles;
+        Dictionary<string, printFile> printFiles;
 
         private static System.Timers.Timer aTimer;
         int t = 0;
@@ -41,7 +41,7 @@ namespace ImgPrint
         public void Printing()
         {
                
-            printFiles = new Dictionary<string,printedFile> ();
+            printFiles = new Dictionary<string,printFile> ();
 
             if (!Directory.Exists(dirPath))
             { 
@@ -53,7 +53,7 @@ namespace ImgPrint
             {
                 string fn = Path.GetFileName(f);
                 if (!printFiles.ContainsKey(fn))                 
-                        printFiles.Add(fn, new printedFile(f));                             
+                        printFiles.Add(fn, new printFile(f));                             
             }
                        
             if (timerInterval > 0)
@@ -81,7 +81,7 @@ namespace ImgPrint
             {                
                 string fn = Path.GetFileName(sf[n]);
                 if (!printFiles.ContainsKey(fn))
-                    printFiles.Add(fn, new printedFile(sf[n]));
+                    printFiles.Add(fn, new printFile(sf[n]));
             }
 
             printImgList(printFiles.Values.Where(x => x.status == printFileStatus.added).ToArray());
@@ -93,19 +93,19 @@ namespace ImgPrint
             
             string[] sf = files.Split(delimeter);
 
-            printFiles = new Dictionary<string, printedFile>();
+            printFiles = new Dictionary<string, printFile>();
 
           for (var n=0;n<sf.Length;n++)
             {
                 sf[n] = dir + "\\" + sf[n];
                 string fn = Path.GetFileName(sf[n]);
                 if (!printFiles.ContainsKey(fn))
-                    printFiles.Add(fn, new printedFile(sf[n]));
+                    printFiles.Add(fn, new printFile(sf[n]));
             }
             printImgList(printFiles.Values.Where(x => x.status == printFileStatus.added).ToArray());
         }
 
-        public void printImgList(printedFile[] files)
+        public void printImgList(printFile[] files)
         {
 
             if (files == null || files.Length == 0)
@@ -161,7 +161,7 @@ namespace ImgPrint
             pd.PrintPage += (sender, args) =>
             {
 
-                printedFile pf = files[n];
+                printFile pf = files[n];
                 try
                 {
 
@@ -259,7 +259,7 @@ namespace ImgPrint
 
             string fn = Path.GetFileName(e.FullPath);
             if (!printFiles.ContainsKey(fn))
-                printFiles.Add(fn, new printedFile(e.FullPath));
+                printFiles.Add(fn, new printFile(e.FullPath));
         } 
 
        
@@ -267,8 +267,9 @@ namespace ImgPrint
         private void OnTimedEvent(Object source, ElapsedEventArgs e)
         {
             t++;
+#if DEBUG
             Console.WriteLine("Tick #{0}",t);
-           
+#endif          
             if (timerMaxTickCount>0 && t >= timerMaxTickCount)
             {
                 aTimer.Stop();
@@ -283,7 +284,7 @@ namespace ImgPrint
 
         void printAsync(object list)
         {
-            printImgList(((Dictionary<string, printedFile>)list)
+            printImgList(((Dictionary<string, printFile>)list)
                 .Values
                 .Where(x => x.status == printFileStatus.added)
                 .ToArray());
@@ -303,7 +304,7 @@ namespace ImgPrint
                 }
             }
 
-          foreach (var f in ((Dictionary<string, printedFile>)list)
+          foreach (var f in ((Dictionary<string, printFile>)list)
                             .Values
                             .Where(x => x.status == printFileStatus.added)
                             .ToArray())
@@ -325,37 +326,7 @@ namespace ImgPrint
     }
 
 
-   public class printedFile:IDisposable
-    {
-        public string filePath;
-        public printFileStatus status;
-        public Bitmap bmp1b;
+  
 
-       public printedFile(string filePath, printFileStatus status)
-        {
-            this.filePath = filePath;
-            this.status = status;
-        }
-        public printedFile(string filePath)
-        {
-            this.filePath = filePath;
-            this.status = printFileStatus.added;
-        }
-
-        public void Dispose()
-        {
-            bmp1b = null;
-            bmp1b.Dispose();
-        }
-    }
-
-   public enum printFileStatus
-    {
-        hasErrors,
-        added,
-        in_queue,
-        converted,
-        printed,
-        removed
-    }
+ 
 }
