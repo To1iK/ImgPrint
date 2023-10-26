@@ -1,6 +1,6 @@
 # ImagePrinting
 
-The image printing program works as a console application.
+The image printing program works as a console application. It's designed for black/white printing of labels and reports by industrial printers with Windows drivers.
 
 ### Version 1.0.0.0 provides the following features:
 - Convert image stream to one-bit bmp format
