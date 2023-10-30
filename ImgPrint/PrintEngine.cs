@@ -32,12 +32,13 @@ namespace ImgPrint
        public int timerMaxTickCount = 7;
 
        public string printToPDFpath = "";
+       public bool saveLog = true;
 
         Dictionary<string, printFile> printFiles;
 
         private static System.Timers.Timer aTimer;
         int t = 0;
-      
+        private bool removeXML;
 
         public void Printing()
         {
@@ -99,7 +100,7 @@ namespace ImgPrint
 
           for (var n=0;n<sf.Length;n++)
             {
-                sf[n] = dir + "\\" + sf[n];
+                sf[n] = dir + "/" + sf[n];
                 string fn = Path.GetFileName(sf[n]);
                 if (!printFiles.ContainsKey(fn))
                     printFiles.Add(fn, new printFile(sf[n]));
@@ -138,29 +139,34 @@ namespace ImgPrint
             if (pkCustomSize == null)
             {
                 log($"No such media type for windows printer - ${mediaType}");
+                Bitmap bm = new Bitmap(files[0].filePath);
+                pkCustomSize = new PaperSize("custom"
+                                             , (int)Math.Ceiling((double)(bm.Width * 100) / dpi)
+                                             , (int)Math.Ceiling((double)(bm.Height * 100) / dpi));
+
+                bm.Dispose();
+                bm = null;
+
             }
 
-            else
-            {
-                pd.DefaultPageSettings.PaperSize = pkCustomSize;
-            }
-                      
+            pd.DefaultPageSettings.PaperSize = pkCustomSize;
+
 
             if (printToPDFpath !=null && printToPDFpath != "")
             {
             pd.PrinterSettings.PrintToFile = true;
-            pd.PrinterSettings.PrintFileName = $"{printToPDFpath}\\{DateTime.Now.Month}{DateTime.Now.Month}{DateTime.Now.Day}{DateTime.Now.Hour}{DateTime.Now.Minute}{DateTime.Now.Second}.pdf";
+            pd.PrinterSettings.PrintFileName = $"{printToPDFpath}/{DateTime.Now.Month}{DateTime.Now.Month}{DateTime.Now.Day}{DateTime.Now.Hour}{DateTime.Now.Minute}{DateTime.Now.Second}.pdf";
             }
 
-            if (convertNeed && Directory.Exists($"{dirPath}\\converted") == false)
+            if (convertNeed && Directory.Exists($"{dirPath}/converted") == false)
             {
                 try
                 {
-                    Directory.CreateDirectory($"{dirPath}\\converted");
+                    Directory.CreateDirectory($"{dirPath}/converted");
                 }
                 catch (Exception ex)
                 {
-                    log(ex.Message);
+                    log(ex.Message + " - " + ex.StackTrace);
                 }
             }
 
@@ -168,17 +174,17 @@ namespace ImgPrint
             {
 
                 printFile pf = files[n];
-                //try
-                //{
-                                 
+                try
+                {
+
 
                     if (convertNeed)
                     {
                         if (isConvertAsync && pf.bmp1b!=null)
                         {                       
                             args.Graphics.DrawImage(pf.bmp1b, new Point(0, 0));
-                            pf.bmp1b = null;
                             pf.bmp1b.Dispose();
+                            pf.bmp1b = null;
                         }
                         else
                         {
@@ -190,7 +196,7 @@ namespace ImgPrint
                         bmp1b.SetResolution(dpi, dpi);
 
                         if (saveNeed)
-                        bmp1b.Save($"{dirPath}\\converted\\{Path.GetFileNameWithoutExtension(pf.filePath)}.bmp", ImageFormat.Bmp);
+                        bmp1b.Save($"{dirPath}/converted/{Path.GetFileNameWithoutExtension(pf.filePath)}.bmp", ImageFormat.Bmp);
 
                         args.Graphics.DrawImage(bmp1b, new Point(0, 0));
 
@@ -216,23 +222,24 @@ namespace ImgPrint
 
                 pf.status = printFileStatus.printed;
 
-                //}
-                //catch(Exception ex)
-                //{
-                //    log($"printing - {ex.Message}");
-                //    pf.status = printFileStatus.hasErrors;
-                //}
-                
+                }
+                catch (Exception ex)
+                {
+                    log($"printing - {ex.Message} - {ex.StackTrace}");
+                    pf.status = printFileStatus.hasErrors;
+                }
+
                 n++;
                
                
                 
             };
 
-            log($"Start printing");
+            log($"Start printing of {files.Length} page(s)");
             
             pd.Print();
-            log($"End printing");
+            log($"End printing of {files.Length} page(s)");
+
             pd.Dispose();
            
                 if (deleteNeed)
@@ -241,8 +248,12 @@ namespace ImgPrint
                      {
                     //log($"{f.filePath.ToString()} - {f.status}");
                     System.IO.File.Delete(f.filePath);
-                    printFiles.Remove(Path.GetFileName(f.filePath));                          
-
+                    printFiles.Remove(Path.GetFileName(f.filePath));
+                    string xml = $"{dirPath}/{Path.GetFileNameWithoutExtension(f.filePath)}.xml";
+                    if (System.IO.File.Exists(xml))
+                    {
+                        System.IO.File.Delete(xml);
+                    }
                      }
             }
                      
@@ -265,7 +276,15 @@ namespace ImgPrint
 
         void log(string msg)
         {
-            Console.WriteLine($"{DateTime.Now} - {msg}");
+            
+            if (saveLog == true)
+            {
+                System.IO.File.AppendAllText(Environment.CurrentDirectory + "/log.txt", $"{DateTime.Now} - {msg}\r\n");
+            }
+            else
+            {
+                Console.WriteLine($"{DateTime.Now} - {msg}");
+            }
         }
 
         private void OnChanged(object sender, FileSystemEventArgs e)
@@ -298,7 +317,11 @@ namespace ImgPrint
             Thread th = new Thread(new ParameterizedThreadStart(printAsync));
            
             th.Start(printFiles);
-                       
+
+            //System.IO.File.AppendAllText(Environment.CurrentDirectory + "/log.txt", sb.ToString());
+
+            //sb.Clear();
+
         }
 
         void printAsync(object list)
@@ -311,11 +334,11 @@ namespace ImgPrint
 
         void convertAsync()
         {
-            if(Directory.Exists($"{dirPath}\\converted") == false)
+            if(Directory.Exists($"{dirPath}/converted") == false)
             {
                 try
                 {
-                Directory.CreateDirectory($"{dirPath}\\converted");
+                Directory.CreateDirectory($"{dirPath}/converted");
                 }
                catch(Exception ex)
                 {
@@ -339,7 +362,7 @@ namespace ImgPrint
                     //f.status = printFileStatus.converted;
                
                     if (saveNeed)
-                        f.bmp1b.Save($"{dirPath}\\converted\\{Path.GetFileNameWithoutExtension(f.filePath)}.bmp", ImageFormat.Bmp);
+                        f.bmp1b.Save($"{dirPath}/converted/{Path.GetFileNameWithoutExtension(f.filePath)}.bmp", ImageFormat.Bmp);
            }
         }
     }

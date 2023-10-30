@@ -23,12 +23,13 @@ namespace ImgPrint
         static int timerInterval;
         static int timerMaxTickCount;
         static string printToPDFpath;
+        static bool saveLog;
 
         static void Main(string[] args)
         {
 
             dirPath            = ConfigurationManager.AppSettings["dirPath"];
-            searchPatern      = ConfigurationManager.AppSettings["searchPatern"];
+            searchPatern       = ConfigurationManager.AppSettings["searchPatern"];
             printerName        = ConfigurationManager.AppSettings["printerName"];
             mediaType          = ConfigurationManager.AppSettings["mediaType"];
             saveNeed           = bool.Parse(ConfigurationManager.AppSettings["saveNeed"]);
@@ -36,7 +37,7 @@ namespace ImgPrint
             timerInterval      = int.Parse(ConfigurationManager.AppSettings["timerInterval"]);
             timerMaxTickCount  = int.Parse(ConfigurationManager.AppSettings["timerMaxTickCount"]);
             printToPDFpath     = ConfigurationManager.AppSettings["printToPDFpath"];
-
+            saveLog            = bool.Parse(ConfigurationManager.AppSettings["saveLog"]);
 
             if (args != null&& args.Length > 0)
             {
@@ -62,6 +63,7 @@ namespace ImgPrint
             printEngine.timerInterval     = timerInterval;
             printEngine.timerMaxTickCount = timerMaxTickCount;
             printEngine.printToPDFpath    = printToPDFpath;
+            printEngine.saveLog           = saveLog;
 
             printEngine.Printing();
                       
@@ -94,7 +96,8 @@ namespace ImgPrint
               v => timerMaxTickCount = int.Parse(v) },
             {"pdf=", "path to dir for saving docoment if pdf(print to file) printer is using",
               v => printToPDFpath = v },
-                       
+            {"l|log=", "save log to file",
+              v => saveLog = bool.Parse(v) },
             };
 
             List<string> extra;
