@@ -129,7 +129,7 @@ namespace ImgPrint
 
         public void printImgList(printFile[] files)
         {
-            Console.WriteLine($"step 1 - {DateTime.Now.ToString("mm.ss.fff")}");
+            //Console.WriteLine($"step 1 - {DateTime.Now.ToString("mm.ss.fff")}");
             if (files == null || files.Length == 0)
             {
                // log("no files for printing");
