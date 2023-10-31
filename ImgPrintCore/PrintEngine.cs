@@ -18,21 +18,21 @@ namespace ImgPrint
     {
        
        //static string filePath;
-       public string dirPath= "";
-       public string searchPatern = "*.png";
-       public string printerName = "";
-       public bool saveNeed = true;
-       public bool deleteNeed = true;
-       public int dpi = 300;
-       public string mediaType = "A4";
-       public bool convertNeed = true;
-       public bool isConvertAsync = false;
+       public string dirPath = "";
+       public string searchPatern = "";
+       public string printerName;
+       public bool saveNeed;
+       public bool deleteNeed;
+       public int dpi;
+       public string mediaType;
+       public bool convertNeed;
+       public bool isConvertAsync;
 
-       public int timerInterval = 2000;
-       public int timerMaxTickCount = 7;
+       public int timerInterval;
+       public int timerMaxTickCount;
 
-       public string printToPDFpath = "";
-       public bool saveLog = true;
+       public string printToPDFpath ;
+       public bool saveLog ;
 
         Dictionary<string, printFile> printFiles;
 
@@ -40,10 +40,27 @@ namespace ImgPrint
         int t = 0;
         private bool removeXML;
 
+        PrinterSettings ps;
+        private IEnumerable<PaperSize> paperSizes;
+
         public void Printing()
         {
                
             printFiles = new Dictionary<string,printFile> ();
+            ps = new PrinterSettings();
+            ps.PrinterName = printerName;
+            if (paperSizes == null)
+            {
+                paperSizes = ps
+                .PaperSizes
+                .Cast<PaperSize>();
+            }
+
+            if (printToPDFpath != null && printToPDFpath != "")
+            {
+                ps.PrintToFile = true;
+                ps.PrintFileName = $"{printToPDFpath}/{DateTime.Now.Month}{DateTime.Now.Month}{DateTime.Now.Day}{DateTime.Now.Hour}{DateTime.Now.Minute}{DateTime.Now.Second}.pdf";
+            }
 
             if (!Directory.Exists(dirPath))
             { 
@@ -78,8 +95,10 @@ namespace ImgPrint
 
         public void printArrayOfFiles(string files, char delimeter=';')
         {
+                       
             string[] sf = files.Split(delimeter);
             printImgList(printFiles.Values.Where(x => x.status == printFileStatus.added).ToArray());
+            
             for (var n = 0; n < sf.Length; n++)
             {                
                 string fn = Path.GetFileName(sf[n]);
@@ -110,7 +129,7 @@ namespace ImgPrint
 
         public void printImgList(printFile[] files)
         {
-
+            Console.WriteLine($"step 1 - {DateTime.Now.ToString("mm.ss.fff")}");
             if (files == null || files.Length == 0)
             {
                // log("no files for printing");
@@ -121,18 +140,19 @@ namespace ImgPrint
             {
                 f.status = printFileStatus.in_queue;
             }
+         
             if (isConvertAsync)
             {
                 Thread t = new Thread(new ThreadStart(convertAsync));
                 t.Start();
             }
-         int n = 0;
 
+         int n = 0;
+  
             PrintDocument pd = new PrintDocument();
-            pd.PrinterSettings.PrinterName = printerName;
-            
-            PaperSize pkCustomSize = pd.PrinterSettings
-                .PaperSizes.Cast<PaperSize>()
+            pd.PrinterSettings = ps;
+
+           PaperSize pkCustomSize = paperSizes
                 .Where(x => x.PaperName == mediaType)
                 .FirstOrDefault();
 
@@ -141,22 +161,16 @@ namespace ImgPrint
                 log($"No such media type for windows printer - ${mediaType}");
                 Bitmap bm = new Bitmap(files[0].filePath);
                 pkCustomSize = new PaperSize("custom"
-                                             , (int)Math.Ceiling((double)(bm.Width * 100) / dpi)
-                                             , (int)Math.Ceiling((double)(bm.Height * 100) / dpi));
+                                             ,(int)Math.Ceiling((double)(bm.Width * 100) / dpi)
+                                             ,(int)Math.Ceiling((double)(bm.Height * 100) / dpi));
 
                 bm.Dispose();
                 bm = null;
 
             }
-
+                         
             pd.DefaultPageSettings.PaperSize = pkCustomSize;
-
-
-            if (printToPDFpath !=null && printToPDFpath != "")
-            {
-            pd.PrinterSettings.PrintToFile = true;
-            pd.PrinterSettings.PrintFileName = $"{printToPDFpath}/{DateTime.Now.Month}{DateTime.Now.Month}{DateTime.Now.Day}{DateTime.Now.Hour}{DateTime.Now.Minute}{DateTime.Now.Second}.pdf";
-            }
+           
 
             if (convertNeed && Directory.Exists($"{dirPath}/converted") == false)
             {
@@ -169,15 +183,13 @@ namespace ImgPrint
                     log(ex.Message + " - " + ex.StackTrace);
                 }
             }
-
+                        
             pd.PrintPage += (sender, args) =>
             {
 
                 printFile pf = files[n];
                 try
                 {
-
-
                     if (convertNeed)
                     {
                         if (isConvertAsync && pf.bmp1b!=null)
@@ -229,9 +241,7 @@ namespace ImgPrint
                     pf.status = printFileStatus.hasErrors;
                 }
 
-                n++;
-               
-               
+                n++;       
                 
             };
 
@@ -241,11 +251,11 @@ namespace ImgPrint
             log($"End printing of {files.Length} page(s)");
 
             pd.Dispose();
-           
-                if (deleteNeed)
+
+            if (deleteNeed)
+            {
+                foreach (var f in files)
                 {
-                    foreach(var f in files)
-                     {
                     //log($"{f.filePath.ToString()} - {f.status}");
                     System.IO.File.Delete(f.filePath);
                     printFiles.Remove(Path.GetFileName(f.filePath));
@@ -254,24 +264,28 @@ namespace ImgPrint
                     {
                         System.IO.File.Delete(xml);
                     }
-                     }
+                }
             }
-                     
+
 
         }
 
+        FileSystemWatcher watcher = new FileSystemWatcher();
         private void SetFileWatcher()
         {
-            var watcher = new FileSystemWatcher(dirPath);
+          //  var watcher = new FileSystemWatcher(dirPath, searchPatern);
             watcher.NotifyFilter = NotifyFilters.Attributes
                           | NotifyFilters.Size
                            ;
+            watcher.Path = dirPath;
+            watcher.Filter = searchPatern;
 
             watcher.Changed += OnChanged;
-
+                       
             watcher.IncludeSubdirectories = false;
             watcher.EnableRaisingEvents = true;
-            log("FileWather started");
+            
+            log($"FileWather started - {watcher.Path}");
         }
 
         void log(string msg)
@@ -289,6 +303,9 @@ namespace ImgPrint
 
         private void OnChanged(object sender, FileSystemEventArgs e)
         {
+#if DEBUG
+            Console.WriteLine(e.Name);
+#endif
             if (e.ChangeType != WatcherChangeTypes.Changed)
             {
                 return;

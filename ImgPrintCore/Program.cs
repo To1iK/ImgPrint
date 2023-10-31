@@ -1,38 +1,49 @@
 ﻿using System.Configuration;
+using ImgPrint;
 using NDesk.Options;
 
 
 bool show_help = false;
 
-string dirPath;
-string searchPatern;
-string printerName;
-string mediaType;
-bool saveNeed;
-bool deleteNeed;
-int timerInterval;
-int timerMaxTickCount;
-string printToPDFpath;
-bool saveLog;
+string dirPath = "";
+string searchPatern = "*.png";
+string printerName = "";
+string mediaType = "A4";
+bool saveNeed = true;
+bool deleteNeed = true;
+int timerInterval = 1000;
+int timerMaxTickCount = 0;
+string printToPDFpath = "";
+bool saveLog = true;
 
-dirPath = ConfigurationManager.AppSettings["dirPath"];
-searchPatern = ConfigurationManager.AppSettings["searchPatern"];
-printerName = ConfigurationManager.AppSettings["printerName"];
-mediaType = ConfigurationManager.AppSettings["mediaType"];
-saveNeed = bool.Parse(ConfigurationManager.AppSettings["saveNeed"]);
-deleteNeed = bool.Parse(ConfigurationManager.AppSettings["deleteNeed"]);
-timerInterval = int.Parse(ConfigurationManager.AppSettings["timerInterval"]);
-timerMaxTickCount = int.Parse(ConfigurationManager.AppSettings["timerMaxTickCount"]);
-printToPDFpath = ConfigurationManager.AppSettings["printToPDFpath"];
-saveLog = bool.Parse(ConfigurationManager.AppSettings["saveLog"]);
+ImgPrint.printEngine printEngine = new ImgPrint.printEngine();
+
+try
+{
+    dirPath = ConfigurationManager.AppSettings["dirPath"];
+    searchPatern = ConfigurationManager.AppSettings["searchPatern"];
+    printerName = ConfigurationManager.AppSettings["printerName"];
+    mediaType = ConfigurationManager.AppSettings["mediaType"];
+    saveNeed = bool.Parse(ConfigurationManager.AppSettings["saveNeed"]);
+    deleteNeed = bool.Parse(ConfigurationManager.AppSettings["deleteNeed"]);
+    timerInterval = int.Parse(ConfigurationManager.AppSettings["timerInterval"]);
+    timerMaxTickCount = int.Parse(ConfigurationManager.AppSettings["timerMaxTickCount"]);
+    printToPDFpath = ConfigurationManager.AppSettings["printToPDFpath"];
+    saveLog = bool.Parse(ConfigurationManager.AppSettings["saveLog"]);
+
+
+}
+catch(Exception ex)
+{
+    Console.WriteLine(ex.Message);
+}
+
 
 if (args != null && args.Length > 0)
 {
     setVarsFromOptions(args);
 }
 
-
-ImgPrint.printEngine printEngine = new ImgPrint.printEngine();
 
 printEngine.dirPath = dirPath;
 printEngine.searchPatern = searchPatern;
@@ -48,7 +59,6 @@ printEngine.saveLog = saveLog;
 printEngine.Printing();
 
 Console.ReadLine();
-
 
  void setVarsFromOptions(string[] args)
 {
