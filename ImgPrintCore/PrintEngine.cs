@@ -27,10 +27,8 @@ namespace ImgPrint
        public string mediaType;
        public bool convertNeed;
        public bool isConvertAsync;
-
        public int timerInterval;
        public int timerMaxTickCount;
-
        public string printToPDFpath ;
        public bool saveLog ;
 
@@ -330,7 +328,7 @@ namespace ImgPrint
                 aTimer.Stop();
                 Environment.Exit(0);
             }
-            
+
             Thread th = new Thread(new ParameterizedThreadStart(printAsync));
            
             th.Start(printFiles);

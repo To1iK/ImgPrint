@@ -1,5 +1,6 @@
 ﻿using System.Configuration;
 using ImgPrint;
+using ImgPrintCore;
 using NDesk.Options;
 
 
@@ -8,6 +9,7 @@ bool show_help = false;
 string dirPath = "";
 string searchPatern = "*.png";
 string printerName = "";
+bool convertNeed = true;
 string mediaType = "A4";
 bool saveNeed = true;
 bool deleteNeed = true;
@@ -15,6 +17,15 @@ int timerInterval = 1000;
 int timerMaxTickCount = 0;
 string printToPDFpath = "";
 bool saveLog = true;
+int dpi = 300;
+
+string ShDirPath = "";
+string ShSearchPatern = "*.xml";
+string ShCommand = "";
+string ShArgs = "";
+
+
+fileSheduler fileSheduler = new fileSheduler();
 
 ImgPrint.printEngine printEngine = new ImgPrint.printEngine();
 
@@ -23,6 +34,7 @@ try
     dirPath = ConfigurationManager.AppSettings["dirPath"];
     searchPatern = ConfigurationManager.AppSettings["searchPatern"];
     printerName = ConfigurationManager.AppSettings["printerName"];
+    convertNeed = bool.Parse(ConfigurationManager.AppSettings["convertNeed"]);
     mediaType = ConfigurationManager.AppSettings["mediaType"];
     saveNeed = bool.Parse(ConfigurationManager.AppSettings["saveNeed"]);
     deleteNeed = bool.Parse(ConfigurationManager.AppSettings["deleteNeed"]);
@@ -30,7 +42,12 @@ try
     timerMaxTickCount = int.Parse(ConfigurationManager.AppSettings["timerMaxTickCount"]);
     printToPDFpath = ConfigurationManager.AppSettings["printToPDFpath"];
     saveLog = bool.Parse(ConfigurationManager.AppSettings["saveLog"]);
+    dpi = int.Parse(ConfigurationManager.AppSettings["dpi"]);
 
+    ShDirPath = ConfigurationManager.AppSettings["ShDirPath"];
+    ShSearchPatern = ConfigurationManager.AppSettings["ShSearchPatern"];
+    ShCommand = ConfigurationManager.AppSettings["ShCommand"];
+    ShArgs = ConfigurationManager.AppSettings["ShArgs"];
 
 }
 catch(Exception ex)
@@ -49,12 +66,22 @@ printEngine.dirPath = dirPath;
 printEngine.searchPatern = searchPatern;
 printEngine.printerName = printerName;
 printEngine.mediaType = mediaType;
+printEngine.convertNeed = convertNeed;
 printEngine.saveNeed = saveNeed;
 printEngine.deleteNeed = deleteNeed;
 printEngine.timerInterval = timerInterval;
 printEngine.timerMaxTickCount = timerMaxTickCount;
 printEngine.printToPDFpath = printToPDFpath;
 printEngine.saveLog = saveLog;
+printEngine.dpi = dpi;
+
+fileSheduler.command = ShCommand;
+fileSheduler.args = ShArgs;
+fileSheduler.dirPath = ShDirPath;
+fileSheduler.searchPatern = ShSearchPatern;
+fileSheduler.saveLog = saveLog;
+
+fileSheduler.SetFileWatcher();
 
 printEngine.Printing();
 
@@ -76,6 +103,8 @@ Console.ReadLine();
               v => printerName = v },
             {"m|mtype=", "name of mediatype for printing",
               v => mediaType = v },
+            {"c|convert=", "if need to convert images after printing",
+              v => convertNeed = bool.Parse(v) },
             {"s|save=", "if need to save converted images after printing",
               v => saveNeed = bool.Parse(v) },
             {"dt|delete=", "if need to delete images from working dir",
@@ -86,8 +115,19 @@ Console.ReadLine();
               v => timerMaxTickCount = int.Parse(v) },
             {"pdf=", "path to dir for saving docoment if pdf(print to file) printer is using",
               v => printToPDFpath = v },
+            {"dpi=", "dpi ",
+              v => dpi = int.Parse(v) },
             {"l|log=", "save log to file",
-              v => saveLog = bool.Parse(v) },
+             v => saveLog = bool.Parse(v) },
+              {"sd|sdir=", "directory for watching of executing files",
+             v => ShDirPath = v },
+            {"ss|ssearch=", "patern for searching of executing files",
+              v => ShSearchPatern = v },
+            {"sc|scom=", "shedule command",
+              v => ShCommand = v },
+            {"sa|sargs=", "shedule args",
+              v => ShArgs = v },
+
             };
 
     List<string> extra;
